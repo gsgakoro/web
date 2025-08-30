@@ -16,7 +16,10 @@
       cursor: pointer;
     }
     select { background: #eee; }
-    button { background: #2066b2; color: white; }
+    button {
+      background: #2066b2;
+      color: white;
+    }
     button:hover { background: #164d82; }
     table {
       width: 100%;
@@ -57,104 +60,95 @@
   <div id="preview"></div>
 
 <script>
-const sheetLinks = {
-  "S1A":"https://docs.google.com/spreadsheets/d/e/1Ot78l4qJnMjY7oye9bMKjAfnHFMv4tYaIl1345M4AwU/pub?output=csv&sheet=S1A",
-  "S1B":"https://docs.google.com/spreadsheets/d/e/1Ot78l4qJnMjY7oye9bMKjAfnHFMv4tYaIl1345M4AwU/pub?output=csv&sheet=S1B",
-  "S1C":"https://docs.google.com/spreadsheets/d/e/1Ot78l4qJnMjY7oye9bMKjAfnHFMv4tYaIl1345M4AwU/pub?output=csv&sheet=S1C",
-  "S2A":"https://docs.google.com/spreadsheets/d/e/1Ot78l4qJnMjY7oye9bMKjAfnHFMv4tYaIl1345M4AwU/pub?output=csv&sheet=S2A",
-  "S2B":"https://docs.google.com/spreadsheets/d/e/1Ot78l4qJnMjY7oye9bMKjAfnHFMv4tYaIl1345M4AwU/pub?output=csv&sheet=S2B",
-  "S3A":"https://docs.google.com/spreadsheets/d/e/1Ot78l4qJnMjY7oye9bMKjAfnHFMv4tYaIl1345M4AwU/pub?output=csv&sheet=S3A",
-  "S3B":"https://docs.google.com/spreadsheets/d/e/1Ot78l4qJnMjY7oye9bMKjAfnHFMv4tYaIl1345M4AwU/pub?output=csv&sheet=S3B"
-};
+  // Map class names to published CSV URLs
+  const sheetLinks = {
+    "S1A": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3PA2uCJMkImTkjQz3K-FmgR3rJaTOuCpvN20S5vO-M9iznRDSkMyV6Px9IrSwFw8LWRBgRupp4NmL/pub?gid=35480693&single=true&output=csv",
+    "S1B": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3PA2uCJMkImTkjQz3K-FmgR3rJaTOuCpvN20S5vO-M9iznRDSkMyV6Px9IrSwFw8LWRBgRupp4NmL/pub?gid=505752934&single=true&output=csv",
+    "S1C": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3PA2uCJMkImTkjQz3K-FmgR3rJaTOuCpvN20S5vO-M9iznRDSkMyV6Px9IrSwFw8LWRBgRupp4NmL/pub?gid=1563305402&single=true&output=csv",
+    "S2A": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3PA2uCJMkImTkjQz3K-FmgR3rJaTOuCpvN20S5vO-M9iznRDSkMyV6Px9IrSwFw8LWRBgRupp4NmL/pub?gid=1076797302&single=true&output=csv",
+    "S2B": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3PA2uCJMkImTkjQz3K-FmgR3rJaTOuCpvN20S5vO-M9iznRDSkMyV6Px9IrSwFw8LWRBgRupp4NmL/pub?gid=790046109&single=true&output=csv",
+    "S3A": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3PA2uCJMkImTkjQz3K-FmgR3rJaTOuCpvN20S5vO-M9iznRDSkMyV6Px9IrSwFw8LWRBgRupp4NmL/pub?gid=2059231041&single=true&output=csv",
+    "S3B": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3PA2uCJMkImTkjQz3K-FmgR3rJaTOuCpvN20S5vO-M9iznRDSkMyV6Px9IrSwFw8LWRBgRupp4NmL/pub?gid=1973310230&single=true&output=csv"
+  };
 
-let currentClass = "";
-let currentData = [];
+  let currentClass = "";
+  let currentData = [];
 
-async function loadSheet() {
-  currentClass = document.getElementById("classSelect").value;
-  if (!currentClass) { alert("Please select a class"); return; }
+  async function loadSheet() {
+    currentClass = document.getElementById("classSelect").value;
+    if (!currentClass) { alert("Please select a class"); return; }
 
-  const url = sheetLinks[currentClass];
-  const res = await fetch(url);
-  if (!res.ok) { alert("Failed to fetch sheet. Check your published CSV link."); return; }
+    const url = sheetLinks[currentClass];
+    if (!url) { alert("CSV link not found for this class"); return; }
 
-  const text = await res.text();
-  currentData = text.trim().split("\n").map(row => row.split(","));
-  renderTable(currentData);
-}
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Failed to fetch CSV");
+      const text = await res.text();
 
-function renderTable(data) {
-  let html = "<table><thead><tr>";
-  data[0].forEach(h => html += `<th>${h}</th>`);
-  html += "</tr></thead><tbody>";
-  for (let i = 1; i < data.length; i++) {
-    html += "<tr>";
-    data[i].forEach(c => html += `<td>${c}</td>`);
-    html += "</tr>";
-  }
-  html += "</tbody></table>";
-  document.getElementById("preview").innerHTML = html;
-}
-
-function downloadPDF() {
-  if (!currentData.length) { alert("Please preview a class first."); return; }
-
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-
-  // Header
-  doc.setFont("helvetica","bold");
-  doc.setFontSize(12);
-  doc.text("GS GAKORO", 200, 15, {align:"right"});
-  doc.text(`CLASS: ${currentClass}`, 200, 22, {align:"right"});
-  doc.text("ACADEMIC YEAR 2025-2026", 200, 29, {align:"right"});
-  doc.setFontSize(16);
-  doc.text("Discipline Report", 105, 45, {align:"center"});
-
-  // Table with borders
-  const colWidths = [60, 40, 50, 40];
-  const rowHeight = 10;
-  let startY = 55;
-
-  // Headers
-  doc.setFont("helvetica","bold");
-  let x = 10;
-  currentData[0].forEach((h,i) => {
-    doc.rect(x, startY, colWidths[i], rowHeight);
-    doc.text(h, x+2, startY+7);
-    x += colWidths[i];
-  });
-
-  // Rows
-  doc.setFont("helvetica","normal");
-  let rowY = startY + rowHeight;
-  for (let i = 1; i < currentData.length; i++) {
-    x = 10;
-    currentData[i].forEach((c,j) => {
-      doc.rect(x, rowY, colWidths[j], rowHeight);
-      doc.text(c.toString(), x+2, rowY+7);
-      x += colWidths[j];
-    });
-    rowY += rowHeight;
-
-    if (rowY > 280) { // new page
-      doc.addPage();
-      rowY = 20;
-      // repeat headers
-      doc.setFont("helvetica","bold");
-      x = 10;
-      currentData[0].forEach((h,j) => {
-        doc.rect(x, rowY, colWidths[j], rowHeight);
-        doc.text(h, x+2, rowY+7);
-        x += colWidths[j];
-      });
-      doc.setFont("helvetica","normal");
-      rowY += rowHeight;
+      currentData = parseCSV(text);
+      renderTable(currentData);
+    } catch (err) {
+      alert("Error loading sheet: " + err.message);
     }
   }
 
-  doc.save(`${currentClass}_Discipline_Report.pdf`);
-}
+  function parseCSV(text) {
+    return text.trim().split("\n").map(row => row.split(","));
+  }
+
+  function renderTable(values) {
+    let html = "<table><thead><tr>";
+    values[0].forEach(h => { html += `<th>${h}</th>`; });
+    html += "</tr></thead><tbody>";
+
+    for (let i = 1; i < values.length; i++) {
+      html += "<tr>";
+      values[i].forEach(c => { html += `<td>${c}</td>`; });
+      html += "</tr>";
+    }
+    html += "</tbody></table>";
+    document.getElementById("preview").innerHTML = html;
+  }
+
+  function downloadPDF() {
+    if (!currentData.length) { alert("No data loaded. Please preview first."); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Bold header (Right side)
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("GS GAKORO", 200, 15, { align: "right" });
+    doc.text("CLASS: " + currentClass, 200, 22, { align: "right" });
+    doc.text("ACADEMIC YEAR 2025-2026", 200, 29, { align: "right" });
+
+    // Title (center)
+    doc.setFontSize(16);
+    doc.text("Discipline Report", 105, 45, { align: "center" });
+
+    // Table headers
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    let startY = 65;
+    const colX = [20, 80, 130, 170]; // adjust if needed
+
+    currentData[0].forEach((header, i) => {
+      doc.text(header, colX[i], startY);
+    });
+
+    // Table rows
+    doc.setFont("helvetica", "normal");
+    let rowY = startY + 10;
+    for (let i = 1; i < currentData.length; i++) {
+      currentData[i].forEach((cell, j) => {
+        doc.text(cell.toString(), colX[j], rowY);
+      });
+      rowY += 10;
+    }
+
+    doc.save(currentClass + "-DisciplineReport.pdf");
+  }
 </script>
 </body>
 </html>
