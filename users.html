@@ -60,96 +60,106 @@
   <div id="preview"></div>
 
 <script>
-  // Map class names to published CSV URLs
-  const sheetLinks = {
-    "S1A": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3PA2uCJMkImTkjQz3K-FmgR3rJaTOuCpvN20S5vO-M9iznRDSkMyV6Px9IrSwFw8LWRBgRupp4NmL/pub?gid=35480693&single=true&output=csv",
-    "S1B": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3PA2uCJMkImTkjQz3K-FmgR3rJaTOuCpvN20S5vO-M9iznRDSkMyV6Px9IrSwFw8LWRBgRupp4NmL/pub?gid=505752934&single=true&output=csv",
-    "S1C": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3PA2uCJMkImTkjQz3K-FmgR3rJaTOuCpvN20S5vO-M9iznRDSkMyV6Px9IrSwFw8LWRBgRupp4NmL/pub?gid=1563305402&single=true&output=csv",
-    "S2A": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3PA2uCJMkImTkjQz3K-FmgR3rJaTOuCpvN20S5vO-M9iznRDSkMyV6Px9IrSwFw8LWRBgRupp4NmL/pub?gid=1076797302&single=true&output=csv",
-    "S2B": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3PA2uCJMkImTkjQz3K-FmgR3rJaTOuCpvN20S5vO-M9iznRDSkMyV6Px9IrSwFw8LWRBgRupp4NmL/pub?gid=790046109&single=true&output=csv",
-    "S3A": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3PA2uCJMkImTkjQz3K-FmgR3rJaTOuCpvN20S5vO-M9iznRDSkMyV6Px9IrSwFw8LWRBgRupp4NmL/pub?gid=2059231041&single=true&output=csv",
-    "S3B": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3PA2uCJMkImTkjQz3K-FmgR3rJaTOuCpvN20S5vO-M9iznRDSkMyV6Px9IrSwFw8LWRBgRupp4NmL/pub?gid=1973310230&single=true&output=csv"
-  };
+let currentClass = "";
+let currentData = [];
 
-  let currentClass = "";
-  let currentData = [];
+async function loadSheet() {
+  currentClass = document.getElementById("classSelect").value;
+  if (!currentClass) { alert("Please select a class"); return; }
 
-  async function loadSheet() {
-    currentClass = document.getElementById("classSelect").value;
-    if (!currentClass) { alert("Please select a class"); return; }
-
-    const url = sheetLinks[currentClass];
-    if (!url) { alert("CSV link not found for this class"); return; }
-
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Failed to fetch CSV");
-      const text = await res.text();
-
-      currentData = parseCSV(text);
-      renderTable(currentData);
-    } catch (err) {
-      alert("Error loading sheet: " + err.message);
-    }
+  const url = `https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3PA2uCJMkImTkjQz3K-FmgR3rJaTOuCpvN20S5vO-M9iznRDSkMyV6Px9IrSwFw8LWRBgRupp4NmL/pub?gid=${getGID(currentClass)}&single=true&output=csv`;
+  
+  try {
+    const res = await fetch(url);
+    const text = await res.text();
+    const rows = text.split("\n").map(r => r.split(","));
+    currentData = rows.map(r => r.slice(0,4)); // Only A-D
+    renderTable(currentData);
+  } catch(err) {
+    console.error(err);
+    document.getElementById("preview").innerHTML = "<p>Failed to load data. Make sure the sheet is published.</p>";
   }
+}
 
-  function parseCSV(text) {
-    return text.trim().split("\n").map(row => row.split(","));
+function renderTable(values) {
+  let html = "<table><thead><tr>";
+  values[0].forEach(h => html += `<th>${h}</th>`);
+  html += "</tr></thead><tbody>";
+
+  for (let i = 1; i < values.length; i++) {
+    html += "<tr>";
+    values[i].forEach(c => html += `<td>${c}</td>`);
+    html += "</tr>";
   }
+  html += "</tbody></table>";
+  document.getElementById("preview").innerHTML = html;
+}
 
-  function renderTable(values) {
-    let html = "<table><thead><tr>";
-    values[0].forEach(h => { html += `<th>${h}</th>`; });
-    html += "</tr></thead><tbody>";
+function downloadPDF() {
+  if (!currentData.length) { alert("No data loaded. Please preview a class first."); return; }
 
-    for (let i = 1; i < values.length; i++) {
-      html += "<tr>";
-      values[i].forEach(c => { html += `<td>${c}</td>`; });
-      html += "</tr>";
-    }
-    html += "</tbody></table>";
-    document.getElementById("preview").innerHTML = html;
-  }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
 
-  function downloadPDF() {
-    if (!currentData.length) { alert("No data loaded. Please preview first."); return; }
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+  // Header
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.text("GS GAKORO", 200, 15, { align: "right" });
+  doc.text("CLASS: " + currentClass, 200, 22, { align: "right" });
+  doc.text("ACADEMIC YEAR 2025-2026", 200, 29, { align: "right" });
 
-    // Bold header (Right side)
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.text("GS GAKORO", 200, 15, { align: "right" });
-    doc.text("CLASS: " + currentClass, 200, 22, { align: "right" });
-    doc.text("ACADEMIC YEAR 2025-2026", 200, 29, { align: "right" });
+  // Title
+  doc.setFontSize(16);
+  doc.text("Discipline Report", 105, 45, { align: "center" });
 
-    // Title (center)
-    doc.setFontSize(16);
-    doc.text("Discipline Report", 105, 45, { align: "center" });
+  // Calculate column widths dynamically
+  let colWidths = currentData[0].map((_, colIndex) => {
+    let maxLength = Math.max(...currentData.map(row => (row[colIndex] || "").length));
+    return Math.min(Math.max(maxLength*2.8, 20), 80); // min 20, max 80
+  });
 
-    // Table headers
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    let startY = 65;
-    const colX = [20, 80, 130, 170]; // adjust if needed
+  const startX = 20;
+  let startY = 65;
 
-    currentData[0].forEach((header, i) => {
-      doc.text(header, colX[i], startY);
+  // Draw table header
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  let x = startX;
+  currentData[0].forEach((header, i) => {
+    doc.text(header, x + 2, startY + 7);
+    doc.rect(x, startY, colWidths[i], 10);
+    x += colWidths[i];
+  });
+
+  // Draw table rows
+  doc.setFont("helvetica", "normal");
+  let rowY = startY + 10;
+  for (let i = 1; i < currentData.length; i++) {
+    x = startX;
+    currentData[i].forEach((cell, j) => {
+      doc.text(cell.toString(), x + 2, rowY + 7);
+      doc.rect(x, rowY, colWidths[j], 10);
+      x += colWidths[j];
     });
-
-    // Table rows
-    doc.setFont("helvetica", "normal");
-    let rowY = startY + 10;
-    for (let i = 1; i < currentData.length; i++) {
-      currentData[i].forEach((cell, j) => {
-        doc.text(cell.toString(), colX[j], rowY);
-      });
-      rowY += 10;
-    }
-
-    doc.save(currentClass + "-DisciplineReport.pdf");
+    rowY += 10;
   }
+
+  doc.save(currentClass + "-DisciplineReport.pdf");
+}
+
+// Map class to GID
+function getGID(cls) {
+  const map = {
+    "S1A": "35480693",
+    "S1B": "505752934",
+    "S1C": "1563305402",
+    "S2A": "1076797302",
+    "S2B": "790046109",
+    "S3A": "2059231041",
+    "S3B": "1973310230"
+  };
+  return map[cls] || "";
+}
 </script>
 </body>
 </html>
-
