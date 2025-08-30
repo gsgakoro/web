@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Classroom Behavior Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; background: #0a1a3f; color: #fff; margin: 0; padding: 5px; }
+  h1 { color: #ffcc00; text-align: center; font-size: 1.3rem; margin-bottom: 10px; }
+  .container { max-width: 500px; margin: auto; background: #142850; padding: 10px; border-radius: 12px; }
+  label { display: block; margin-top: 8px; font-size: 0.9rem; }
+  select, input, textarea, button { padding: 8px; margin-top: 6px; border-radius: 8px; border: none; width: 100%; font-size: 0.95rem; box-sizing: border-box; }
+  select, input, textarea { background: #fff; color: #000; }
+  button { background: #ffcc00; font-weight: bold; cursor: pointer; margin-top: 8px; }
+  .question { margin: 6px 0; padding: 6px; background: #1e3d77; border-radius: 8px; font-size: 0.9rem; }
+  .question span { display: inline-block; width: 100%; margin-bottom: 4px; }
+  .progress-container { background: #ccc; border-radius: 8px; overflow: hidden; margin: 10px 0; position: relative; }
+  .progress-bar { height: 22px; background: #ffcc00; width: 0%; text-align: center; color: #000; font-weight: bold; font-size: 0.8rem; line-height: 22px; transition: width 0.3s ease; }
+  .top-buttons { display: flex; justify-content: space-between; margin-bottom: 10px; gap: 5px; }
+  @media (max-width: 500px) { h1 { font-size: 1.1rem; } .question { font-size: 0.85rem; } button { font-size: 0.9rem; padding: 6px; } }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="top-buttons">
+    <button id="logoutBtn">Logout</button>
+    <button id="resetBtn">Reset Class Progress</button>
+  </div>
+
+  <h1>Classroom Behavior Dashboard</h1>
+
+  <label for="teacher">Teacher</label>
+  <input type="text" id="teacher" placeholder="Enter teacher's name" required>
+
+  <label for="class">Class</label>
+  <input type="text" id="class" placeholder="Enter class (e.g., S1A)" required>
+
+  <label for="student">Select Student</label>
+  <select id="student"></select>
+
+  <!-- Chart -->
+  <canvas id="studentChart" height="150"></canvas>
+
+  <div class="progress-container">
+    <div id="progressBar" class="progress-bar">0/0 - 0%</div>
+  </div>
+
+  <form id="behaviorForm" style="display:none;">
+    <div id="questions"></div>
+
+    <label for="notes">Notes (Optional)</label>
+    <textarea id="notes" rows="3" placeholder="Enter additional notes..."></textarea>
+
+    <button type="submit">Submit</button>
+    <button type="button" id="clearBtn">Clear</button>
+  </form>
+</div>
+
+<script>
+/* ------- CONFIG ------- */
+const APP_URL = "https://script.google.com/macros/s/AKfycbyGFAaZ-X_lpg4-Ybwdi7QXi4l1ABDlP7s22OC4E2c60CyraxL72Vq-8uXrDZzRgGkqwQ/exec";
+const STORAGE_KEY = "submittedByClass_v2"; // { "S1A": ["Alice","Eric"], "S2B": [...] }
+
+/* ------- QUESTION SET WITH SCORES ------- */
+const QUESTIONS = [
+  { text: "Arasubiza mu masomo (Raise hand in class)", scoreYes: 3, scoreNo: 0 },
+  { text: "Agerera ku gihe mu ishuri (Arrive to class on time)", scoreYes: 4, scoreNo: 0 },
+  { text: "Akora ibyo abwiwe (Do what he/she is told)", scoreYes: 3, scoreNo: 0 },
+  { text: "Yitwara neza igihe umwarimu adahari (Behave for a substitute)", scoreYes: 2, scoreNo: 0 },
+  { text: "Afite ibikoresho byose by'ishuri (Have all materials for class)", scoreYes: 2, scoreNo: 0 },
+  { text: "Afasha umwarimu igihe abisabwe (Help teacher when asked)", scoreYes: 3, scoreNo: 0 },
+  { text: "Yitwara neza (Act politely)", scoreYes: 3, scoreNo: 0 },
+  { text: "Arakurikira mu ishuri (Pay attention in class)", scoreYes: 4, scoreNo: 0 },
+  { text: "Akora cg Agira isuku (Clean up desk area)", scoreYes: 2, scoreNo: 0 },
+  { text: "Afata inshingano zinyongera mu ishuri (Accept extra duties in class like a group leader)", scoreYes: 2, scoreNo: 0 },
+  { text: "Akora akajagari ku murongo (Act up in line)", scoreYes: -2, scoreNo: 0 },
+  { text: "Asakuza mu ishuri (Talk in class)", scoreYes: -2, scoreNo: 0 },
+  { text: "Yandika ku meza y'abanyeshuri (Write on desks)", scoreYes: -3, scoreNo: 0 },
+  { text: "Arajagaraye mu ishuri (Disorderly)", scoreYes: -3, scoreNo: 0 },
+  { text: "Yicara mu buryo butari bwo (Lean back in chairs)", scoreYes: -2, scoreNo: 0 },
+  { text: "Kuryagagura mu ishuri (Chew gum in class)", scoreYes: -1, scoreNo: 0 },
+  { text: "Atera ibintu mu ishuri (Throw objects in class)", scoreYes: -3, scoreNo: 0 },
+  { text: "Arenderanya (Touch other students)", scoreYes: -2, scoreNo: 0 },
+  { text: "Afata ibyo abandi bafite (Take other's things)", scoreYes: -3, scoreNo: 0 },
+  { text: "Akoresha amagambo akomeretsa cyangwa ashinyagura (Use abusive language)", scoreYes: -4, scoreNo: 0 }
+];
+
+/* ------- STATE ------- */
+let studentsList = [];   // remaining (not yet submitted) for current class
+let totalStudents = 0;   // total in current class
+let submittedByClass = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+
+/* ------- LOGIN GUARD (optional) ------- */
+if(!localStorage.getItem("loggedInUser")){
+  // comment the next 2 lines if you don't use a login gate
+  alert("You must login first!");
+  window.location.href = "login.html";
+}
+
+/* ------- CHART ------- */
+const ctx = document.getElementById('studentChart').getContext('2d');
+let studentChart = new Chart(ctx, {
+  type: 'doughnut',
+  data: {
+    labels: ['Submitted', 'Remaining'],
+    datasets: [{ data: [0,0], backgroundColor: ['#ffcc00', '#1e3d77'] }]
+  },
+  options: { responsive:true, plugins:{ legend:{ position:'bottom', labels:{ color:'#fff' } } } }
+});
+
+/* ------- HELPERS ------- */
+function getCurrentClassKey(){
+  return (document.getElementById("class").value || "").trim().toUpperCase();
+}
+
+function getSubmittedListForClass(cls){
+  return submittedByClass[cls] || [];
+}
+
+function setSubmittedListForClass(cls, list){
+  submittedByClass[cls] = list;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(submittedByClass));
+}
+
+/* ------- FETCH STUDENTS BY CLASS (server filters by class) ------- */
+function fetchStudents(){
+  const className = getCurrentClassKey();
+  if(!className){
+    alert("Please enter a class first (e.g., S1A)");
+    return;
+  }
+
+  fetch(`${APP_URL}?class=${encodeURIComponent(className)}`)
+    .then(res => res.json())
+    .then(data => {
+      if(data.error){
+        alert("❌ " + data.error);
+        return;
+      }
+
+      // data.students is an array of {class, name} for this class
+      const allNames = (data.students || []).map(s => s.name).filter(Boolean).sort();
+      totalStudents = allNames.length;
+
+      // filter out already-submitted for THIS class only
+      const submitted = new Set(getSubmittedListForClass(className));
+      studentsList = allNames.filter(n => !submitted.has(n));
+
+      renderStudentOptions();
+      updateProgressAndChart();
+      document.getElementById("behaviorForm").style.display = "none";
+    })
+    .catch(err => alert("❌ Error fetching students: " + err));
+}
+
+function renderStudentOptions(){
+  const studentSelect = document.getElementById("student");
+  studentSelect.innerHTML = `<option value="">-- Select --</option>`;
+  studentsList.forEach(name=>{
+    const option = document.createElement("option");
+    option.value = name;
+    option.textContent = name;
+    studentSelect.appendChild(option);
+  });
+}
+
+/* ------- PROGRESS + CHART (accurate per class) ------- */
+function updateProgressAndChart(){
+  const submittedCount = totalStudents - studentsList.length;   // accurate for current class
+  const remaining = studentsList.length;
+  const percent = totalStudents ? Math.round((submittedCount/totalStudents)*100) : 0;
+
+  const bar = document.getElementById("progressBar");
+  bar.style.width = percent + "%";
+  bar.textContent = `${submittedCount}/${totalStudents} - ${percent}%`;
+
+  studentChart.data.datasets[0].data = [submittedCount, remaining];
+  studentChart.update();
+}
+
+/* ------- FORM UI ------- */
+document.getElementById("class").addEventListener("change", ()=>{
+  // ensure class bucket exists
+  const cls = getCurrentClassKey();
+  if(!submittedByClass[cls]) setSubmittedListForClass(cls, []);
+  fetchStudents();
+});
+
+document.getElementById("student").addEventListener("change", function(){
+  const qContainer = document.getElementById("questions");
+  qContainer.innerHTML = "";
+  if(this.value){
+    document.getElementById("behaviorForm").style.display = "block";
+    QUESTIONS.forEach((q, idx)=>{
+      const div = document.createElement("div");
+      div.className = "question";
+      div.innerHTML = `
+        <span>${q.text}</span>
+        <label><input type="radio" name="q${idx}" value="${q.scoreYes}" required> Yes</label>
+        <label><input type="radio" name="q${idx}" value="${q.scoreNo}"> No</label>
+      `;
+      qContainer.appendChild(div);
+    });
+  }else{
+    document.getElementById("behaviorForm").style.display = "none";
+  }
+  resetIdleTimer();
+});
+
+document.getElementById("clearBtn").addEventListener("click", ()=>{
+  document.getElementById("behaviorForm").reset();
+  resetIdleTimer();
+});
+
+/* ------- SUBMIT ------- */
+document.getElementById("behaviorForm").addEventListener("submit", function(e){
+  e.preventDefault();
+  const cls = getCurrentClassKey();
+  const student = document.getElementById("student").value;
+
+  if(!student){ alert("Select a student."); return; }
+
+  // prevent duplicate submission for the same class
+  const already = new Set(getSubmittedListForClass(cls));
+  if(already.has(student)){
+    alert("This student has already been submitted for this class!");
+    return;
+  }
+
+  const teacher = (document.getElementById("teacher").value || "").trim();
+  const notes = (document.getElementById("notes").value || "").trim();
+  if(!teacher || !cls){
+    alert("Teacher and Class fields are required.");
+    return;
+  }
+
+  // build answers object (numeric values)
+  const answers = {};
+  QUESTIONS.forEach((q, idx)=>{
+    const raw = document.querySelector(`input[name="q${idx}"]:checked`)?.value;
+    answers[q.text] = raw === undefined ? "" : Number(raw);
+  });
+
+  const payload = {
+    "Student Name": student,
+    "Teacher": teacher,
+    "Class": cls,
+    "Notes": notes,
+    ...answers
+  };
+
+  fetch(APP_URL, { method: "POST", body: JSON.stringify(payload) })
+    .then(res => res.json())
+    .then(data => {
+      if(data.error){
+        alert("❌ " + data.error);
+        return;
+      }
+      alert("✅ " + data.message);
+
+      // update local state for this class only
+      const updated = getSubmittedListForClass(cls);
+      updated.push(student);
+      setSubmittedListForClass(cls, Array.from(new Set(updated)));
+
+      // remove from remaining list and refresh UI
+      studentsList = studentsList.filter(s => s !== student);
+      renderStudentOptions();
+      updateProgressAndChart();
+      document.getElementById("behaviorForm").style.display = "none";
+      document.getElementById("behaviorForm").reset();
+    })
+    .catch(err => alert("❌ Error: " + err));
+});
+
+/* ------- AUTO LOGOUT & IDLE TIMER (optional) ------- */
+function resetIdleTimer(){ localStorage.setItem("lastActivity", Date.now()); }
+setInterval(()=>{
+  const last = parseInt(localStorage.getItem("lastActivity") || 0, 10);
+  if((Date.now() - last)/60000 >= 5){
+    alert("Session expired due to inactivity. Redirecting to login page.");
+    localStorage.removeItem("loggedInUser");
+    localStorage.removeItem("lastActivity");
+    window.location.href = "login.html";
+  }
+}, 60000);
+['mousemove','keypress','click','touchstart'].forEach(evt=>document.addEventListener(evt, resetIdleTimer, false));
+
+/* ------- TOP BUTTONS ------- */
+document.getElementById("logoutBtn").addEventListener("click", ()=>{
+  localStorage.removeItem("loggedInUser");
+  localStorage.removeItem("lastActivity");
+  window.location.href = "login.html";
+});
+
+document.getElementById("resetBtn").addEventListener("click", ()=>{
+  const cls = getCurrentClassKey();
+  if(!cls){ alert("Enter a class first."); return; }
+  if(confirm(`Reset local progress for ${cls}?`)){
+    setSubmittedListForClass(cls, []);
+    fetchStudents(); // refetch & refresh UI
+  }
+  resetIdleTimer();
+});
+</script>
+</body>
+</html>
