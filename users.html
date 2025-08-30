@@ -73,7 +73,7 @@ async function loadSheet() {
     const res = await fetch(url);
     const text = await res.text();
     const rows = text.split("\n").map(r => r.split(","));
-    currentData = rows.map(r => r.slice(0,4)); // Only A-D
+    currentData = rows.map(r => r.slice(0,4)); // Only columns A-D
     renderTable(currentData);
   } catch(err) {
     console.error(err);
@@ -85,7 +85,6 @@ function renderTable(values) {
   let html = "<table><thead><tr>";
   values[0].forEach(h => html += `<th>${h}</th>`);
   html += "</tr></thead><tbody>";
-
   for (let i = 1; i < values.length; i++) {
     html += "<tr>";
     values[i].forEach(c => html += `<td>${c}</td>`);
@@ -101,18 +100,18 @@ function downloadPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
-  // Header
+  // Header aligned left
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
-  doc.text("GS GAKORO", 200, 15, { align: "right" });
-  doc.text("CLASS: " + currentClass, 200, 22, { align: "right" });
-  doc.text("ACADEMIC YEAR 2025-2026", 200, 29, { align: "right" });
+  doc.text("GS GAKORO", 20, 15);
+  doc.text("CLASS: " + currentClass, 20, 22);
+  doc.text("ACADEMIC YEAR 2025-2026", 20, 29);
 
-  // Title
+  // Title centered
   doc.setFontSize(16);
   doc.text("Discipline Report", 105, 45, { align: "center" });
 
-  // Calculate column widths dynamically
+  // Column widths
   let colWidths = currentData[0].map((_, colIndex) => {
     let maxLength = Math.max(...currentData.map(row => (row[colIndex] || "").length));
     return Math.min(Math.max(maxLength*2.8, 20), 80); // min 20, max 80
@@ -121,7 +120,7 @@ function downloadPDF() {
   const startX = 20;
   let startY = 65;
 
-  // Draw table header
+  // Table header
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
   let x = startX;
@@ -131,7 +130,7 @@ function downloadPDF() {
     x += colWidths[i];
   });
 
-  // Draw table rows
+  // Table rows
   doc.setFont("helvetica", "normal");
   let rowY = startY + 10;
   for (let i = 1; i < currentData.length; i++) {
