@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Discipline Reports | GS GAKORO</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
+    h1 { color: #ff7a00; }
+    select, button {
+      padding: 10px 14px;
+      margin: 6px;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    select { background: #eee; }
+    button { background: #2066b2; color: white; }
+    button:hover { background: #164d82; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: white;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+    }
+    th {
+      background: #ff7a00;
+      color: white;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>GS GAKORO – Discipline Reports</h1>
+
+  <label for="classSelect"><b>Select Class:</b></label>
+  <select id="classSelect">
+    <option value="">--Choose--</option>
+    <option value="S1A">S1A</option>
+    <option value="S1B">S1B</option>
+    <option value="S1C">S1C</option>
+    <option value="S2A">S2A</option>
+    <option value="S2B">S2B</option>
+    <option value="S3A">S3A</option>
+    <option value="S3B">S3B</option>
+  </select>
+  <button onclick="loadSheet()">Preview</button>
+  <button onclick="downloadPDF()">Download PDF</button>
+
+  <div id="preview"></div>
+
+<script>
+const sheetLinks = {
+  "S1A":"https://docs.google.com/spreadsheets/d/e/1Ot78l4qJnMjY7oye9bMKjAfnHFMv4tYaIl1345M4AwU/pub?output=csv&sheet=S1A",
+  "S1B":"https://docs.google.com/spreadsheets/d/e/1Ot78l4qJnMjY7oye9bMKjAfnHFMv4tYaIl1345M4AwU/pub?output=csv&sheet=S1B",
+  "S1C":"https://docs.google.com/spreadsheets/d/e/1Ot78l4qJnMjY7oye9bMKjAfnHFMv4tYaIl1345M4AwU/pub?output=csv&sheet=S1C",
+  "S2A":"https://docs.google.com/spreadsheets/d/e/1Ot78l4qJnMjY7oye9bMKjAfnHFMv4tYaIl1345M4AwU/pub?output=csv&sheet=S2A",
+  "S2B":"https://docs.google.com/spreadsheets/d/e/1Ot78l4qJnMjY7oye9bMKjAfnHFMv4tYaIl1345M4AwU/pub?output=csv&sheet=S2B",
+  "S3A":"https://docs.google.com/spreadsheets/d/e/1Ot78l4qJnMjY7oye9bMKjAfnHFMv4tYaIl1345M4AwU/pub?output=csv&sheet=S3A",
+  "S3B":"https://docs.google.com/spreadsheets/d/e/1Ot78l4qJnMjY7oye9bMKjAfnHFMv4tYaIl1345M4AwU/pub?output=csv&sheet=S3B"
+};
+
+let currentClass = "";
+let currentData = [];
+
+async function loadSheet() {
+  currentClass = document.getElementById("classSelect").value;
+  if (!currentClass) { alert("Please select a class"); return; }
+
+  const url = sheetLinks[currentClass];
+  const res = await fetch(url);
+  if (!res.ok) { alert("Failed to fetch sheet. Check your published CSV link."); return; }
+
+  const text = await res.text();
+  currentData = text.trim().split("\n").map(row => row.split(","));
+  renderTable(currentData);
+}
+
+function renderTable(data) {
+  let html = "<table><thead><tr>";
+  data[0].forEach(h => html += `<th>${h}</th>`);
+  html += "</tr></thead><tbody>";
+  for (let i = 1; i < data.length; i++) {
+    html += "<tr>";
+    data[i].forEach(c => html += `<td>${c}</td>`);
+    html += "</tr>";
+  }
+  html += "</tbody></table>";
+  document.getElementById("preview").innerHTML = html;
+}
+
+function downloadPDF() {
+  if (!currentData.length) { alert("Please preview a class first."); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  // Header
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(12);
+  doc.text("GS GAKORO", 200, 15, {align:"right"});
+  doc.text(`CLASS: ${currentClass}`, 200, 22, {align:"right"});
+  doc.text("ACADEMIC YEAR 2025-2026", 200, 29, {align:"right"});
+  doc.setFontSize(16);
+  doc.text("Discipline Report", 105, 45, {align:"center"});
+
+  // Table with borders
+  const colWidths = [60, 40, 50, 40];
+  const rowHeight = 10;
+  let startY = 55;
+
+  // Headers
+  doc.setFont("helvetica","bold");
+  let x = 10;
+  currentData[0].forEach((h,i) => {
+    doc.rect(x, startY, colWidths[i], rowHeight);
+    doc.text(h, x+2, startY+7);
+    x += colWidths[i];
+  });
+
+  // Rows
+  doc.setFont("helvetica","normal");
+  let rowY = startY + rowHeight;
+  for (let i = 1; i < currentData.length; i++) {
+    x = 10;
+    currentData[i].forEach((c,j) => {
+      doc.rect(x, rowY, colWidths[j], rowHeight);
+      doc.text(c.toString(), x+2, rowY+7);
+      x += colWidths[j];
+    });
+    rowY += rowHeight;
+
+    if (rowY > 280) { // new page
+      doc.addPage();
+      rowY = 20;
+      // repeat headers
+      doc.setFont("helvetica","bold");
+      x = 10;
+      currentData[0].forEach((h,j) => {
+        doc.rect(x, rowY, colWidths[j], rowHeight);
+        doc.text(h, x+2, rowY+7);
+        x += colWidths[j];
+      });
+      doc.setFont("helvetica","normal");
+      rowY += rowHeight;
+    }
+  }
+
+  doc.save(`${currentClass}_Discipline_Report.pdf`);
+}
+</script>
+</body>
+</html>
