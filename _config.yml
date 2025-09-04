@@ -1,0 +1,9 @@
+# Enable pretty permalinks (removes .html in URLs)
+permalink: pretty
+
+# Since this site is in a subfolder
+baseurl: "/web"
+
+# Optional site info
+title: "GS GAKORO Web"
+description: "GS GAKORO Subsite with clean URLs"
