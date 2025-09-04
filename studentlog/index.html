@@ -163,7 +163,7 @@
           errorMsg.style.color = "green";
           errorMsg.textContent = "🎉 Teacher login successful! Redirecting...";
           localStorage.setItem("teacherAuth", "true");
-          setTimeout(() => { window.location.href = "teacher.html"; }, 1200);
+          setTimeout(() => { window.location.href = "/web/teacher/"; }, 1200);
         } else {
           errorMsg.style.color = "red";
           errorMsg.textContent = "❌ Wrong teacher code!";
@@ -196,8 +196,9 @@
       errorMsg.style.color = "green";
       errorMsg.textContent = `✅ Great job ${username}! Redirecting...`;
 
-      setTimeout(() => { window.location.href = "test.html"; }, 1200);
+      setTimeout(() => { window.location.href = "/web/test/"; }, 1200);
     });
   </script>
 </body>
 </html>
+
