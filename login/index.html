@@ -90,7 +90,7 @@ document.getElementById("loginForm").addEventListener("submit", function(e){
   if(user){
     localStorage.setItem("loggedInUser", username);
     localStorage.setItem("lastActivity", Date.now());
-    window.location.href = "bssa.html"; // your dashboard page
+    window.location.href = "/web/bssa/"; // your dashboard page
   }else{
     alert("❌ Invalid username or password");
   }
@@ -116,3 +116,4 @@ document.getElementById("year").textContent = new Date().getFullYear();
 </script>
 </body>
 </html>
+
