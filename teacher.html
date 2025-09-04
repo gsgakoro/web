@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Teacher’s View</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #eaffea;
+      margin: 0;
+      padding: 20px;
+    }
+    h2 {
+      color: #004d00;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    button {
+      padding: 8px 12px;
+      background: #006600;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #004d00;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #006600;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background: #006600;
+      color: white;
+    }
+    tr:nth-child(even) {
+      background: #f4fff4;
+    }
+  </style>
+</head>
+<body oncontextmenu="return false;">
+  <h2>
+    Teacher’s View
+    <button onclick="resetLog()">Reset Logins</button>
+  </h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Password</th>
+        <th>Student</th>
+      </tr>
+    </thead>
+    <tbody id="logTable"></tbody>
+  </table>
+
+  <script>
+    // Block access if teacher not logged in
+    if(localStorage.getItem("teacherAuth") !== "true"){
+      alert("❌ Unauthorized. Please login as Teacher.");
+      window.location.href = "index.html";
+    }
+
+    // Load used passwords
+    function loadLogs(){
+      let table = document.getElementById("logTable");
+      table.innerHTML = "";
+      for(let i=0; i<localStorage.length; i++){
+        let key = localStorage.key(i);
+        let value = localStorage.getItem(key);
+        if(key !== "teacherAuth"){
+          let row = table.insertRow();
+          row.insertCell(0).textContent = key;
+          row.insertCell(1).textContent = value;
+        }
+      }
+    }
+    loadLogs();
+
+    // Reset logins
+    function resetLog(){
+      if(confirm("⚠ Are you sure you want to reset all student logins?")){
+        localStorage.clear();
+        localStorage.setItem("teacherAuth", "true"); // keep teacher logged in
+        loadLogs();
+        alert("✅ All student logins have been reset.");
+      }
+    }
+  </script>
+</body>
+</html>

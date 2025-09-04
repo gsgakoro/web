@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Exam Login</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4fff4;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .login-box {
+      background: white;
+      border: 2px solid #006600;
+      border-radius: 12px;
+      padding: 30px;
+      text-align: center;
+      width: 320px;
+    }
+    h2 {
+      color: #006600;
+      margin-bottom: 20px;
+    }
+    select, input {
+      width: 90%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border: 1px solid #006600;
+      font-size: 16px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #006600;
+      color: white;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #004d00;
+    }
+    .error {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body oncontextmenu="return false;">
+
+  <div class="login-box">
+    <h2>Exam Login</h2>
+    <form id="loginForm">
+      <!-- Username -->
+      <select id="username" required>
+        <option value="">-- Select Username --</option>
+        <option value="S1A">S1A</option>
+        <option value="S1B">S1B</option>
+        <option value="S1C">S1C</option>
+        <option value="S2A">S2A</option>
+        <option value="S2B">S2B</option>
+        <option value="S3A">S3A</option>
+        <option value="S3B">S3B</option>
+        <option value="TEACHER">Teacher</option>
+      </select>
+
+      <!-- Password -->
+      <input type="password" id="password" placeholder="Password" required onpaste="return false;">
+
+      <button type="submit">Login</button>
+      <p class="error" id="errorMsg"></p>
+    </form>
+  </div>
+
+  <script>
+    let usedPasswords = {}; // track student password usage
+    let failCount = 0;
+    const MAX_FAILS = 3;
+    const TEACHER_PASSWORD = "TEACHER123"; // 🔑 change as needed
+
+    // Map student usernames to suffix
+    const suffixMap = {
+      "S1A": "A",
+      "S1B": "B",
+      "S1C": "C",
+      "S2A": "A",
+      "S2B": "B",
+      "S3A": "A",
+      "S3B": "B"
+    };
+
+    // Generate valid passwords for students
+    let validPasswords = {};
+    for (let user in suffixMap) {
+      let suffix = suffixMap[user];
+      validPasswords[user] = [];
+      for (let i = 1; i <= 60; i++) {
+        validPasswords[user].push(i + suffix);
+      }
+    }
+
+    document.getElementById("loginForm").addEventListener("submit", function(event){
+      event.preventDefault();
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value.trim().toUpperCase();
+      const errorMsg = document.getElementById("errorMsg");
+
+      if(!username){
+        errorMsg.style.color = "red";
+        errorMsg.textContent = "Please select a username!";
+        return;
+      }
+
+      // --- Teacher login ---
+      if(username === "TEACHER"){
+        if(password === TEACHER_PASSWORD){
+          errorMsg.style.color = "green";
+          errorMsg.textContent = "✅ Teacher login successful! Redirecting...";
+          localStorage.setItem("teacherAuth", "true"); // save teacher login
+          setTimeout(() => {
+            window.location.href = "teacher.html";
+          }, 1000);
+        } else {
+          errorMsg.style.color = "red";
+          errorMsg.textContent = "❌ Wrong teacher password!";
+        }
+        return;
+      }
+
+      // --- Student login ---
+      if(!validPasswords[username].includes(password)){
+        failCount++;
+        errorMsg.style.color = "red";
+        errorMsg.textContent = `❌ Invalid password for ${username}. Attempts left: ${MAX_FAILS - failCount}`;
+        if(failCount >= MAX_FAILS){
+          document.getElementById("password").disabled = true;
+          document.querySelector("button").disabled = true;
+          errorMsg.textContent = "🔒 Locked! Too many wrong attempts.";
+        }
+        return;
+      }
+
+      if(localStorage.getItem(password) && localStorage.getItem(password) !== username){
+        errorMsg.style.color = "red";
+        errorMsg.textContent = "❌ This password is already used by another student!";
+        return;
+      }
+
+      // Success
+      localStorage.setItem(password, username); // store as used
+      errorMsg.style.color = "green";
+      errorMsg.textContent = `✅ Login successful! Redirecting...`;
+
+      setTimeout(() => {
+        window.location.href = "test.html";
+      }, 1000);
+    });
+  </script>
+</body>
+</html>
