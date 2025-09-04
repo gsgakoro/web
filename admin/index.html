@@ -93,7 +93,7 @@
 
     if (user === ADMIN_USER && pass === ADMIN_PASS) {
       localStorage.setItem("isLoggedIn", "true");
-      window.location.href = "MainDash.html"; // redirect
+      window.location.href = "/web/MainDash/"; // redirect
       return false;
     } else {
       error.style.display = "block";
@@ -103,3 +103,4 @@
 </script>
 </body>
 </html>
+
