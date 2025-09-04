@@ -2,64 +2,103 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Exam Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- ✅ Mobile scaling -->
+  <title>Exam Adventure Login 🎉</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #f4fff4;
+      font-family: Comic Sans MS, Arial, sans-serif;
+      background: linear-gradient(135deg, #a8ff78, #78ffd6);
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      min-height: 100vh;
       margin: 0;
+      padding: 10px; /* ✅ spacing on small screens */
     }
     .login-box {
-      background: white;
-      border: 2px solid #006600;
-      border-radius: 12px;
-      padding: 30px;
+      background: #fff;
+      border: 4px solid #00cc66;
+      border-radius: 20px;
+      padding: 25px;
       text-align: center;
-      width: 320px;
+      width: 100%;
+      max-width: 360px; /* ✅ flexible width */
+      box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+      animation: floaty 3s ease-in-out infinite;
+    }
+    @keyframes floaty {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
     }
     h2 {
-      color: #006600;
-      margin-bottom: 20px;
+      color: #009933;
+      margin-bottom: 15px;
+      font-size: 1.6rem; /* ✅ responsive size */
+    }
+    .mascot {
+      font-size: 2.8rem;
+      margin-bottom: 10px;
     }
     select, input {
-      width: 90%;
-      padding: 10px;
+      width: 100%; /* ✅ full width */
+      padding: 12px;
       margin: 10px 0;
-      border-radius: 8px;
-      border: 1px solid #006600;
-      font-size: 16px;
+      border-radius: 12px;
+      border: 2px solid #00cc66;
+      font-size: 1rem;
+      outline: none;
+      transition: 0.3s;
+    }
+    select:focus, input:focus {
+      border-color: #ff9900;
+      box-shadow: 0 0 8px #ff9900;
     }
     button {
       width: 100%;
-      padding: 12px;
-      background: #006600;
+      padding: 14px;
+      background: linear-gradient(45deg, #00cc66, #009933);
       color: white;
-      font-size: 16px;
+      font-size: 1.1rem;
+      font-weight: bold;
       border: none;
-      border-radius: 8px;
+      border-radius: 12px;
       cursor: pointer;
+      transition: 0.3s;
     }
     button:hover {
-      background: #004d00;
+      background: linear-gradient(45deg, #ff9900, #ff6600);
+      transform: scale(1.05);
     }
     .error {
       margin-top: 10px;
       font-weight: bold;
+      font-size: 1rem;
+    }
+
+    /* ✅ Extra tweaks for small screens */
+    @media (max-width: 480px) {
+      h2 {
+        font-size: 1.3rem;
+      }
+      .mascot {
+        font-size: 2.2rem;
+      }
+      select, input, button {
+        font-size: 0.95rem;
+        padding: 10px;
+      }
     }
   </style>
 </head>
 <body oncontextmenu="return false;">
 
   <div class="login-box">
-    <h2>Exam Login</h2>
+    <div class="mascot">📚✨</div>
+    <h2>Welcome to RIASEC Test!</h2>
     <form id="loginForm">
       <!-- Username -->
       <select id="username" required>
-        <option value="">-- Select Username --</option>
+        <option value="">-- 🎓 Select Username --</option>
         <option value="S1A">S1A</option>
         <option value="S1B">S1B</option>
         <option value="S1C">S1C</option>
@@ -71,31 +110,25 @@
       </select>
 
       <!-- Password -->
-      <input type="password" id="password" placeholder="Password" required onpaste="return false;">
+      <input type="password" id="password" placeholder="🔑 Secret Code" required onpaste="return false;">
 
-      <button type="submit">Login</button>
+      <button type="submit">🚀 Start Test</button>
       <p class="error" id="errorMsg"></p>
     </form>
   </div>
 
   <script>
-    let usedPasswords = {}; // track student password usage
+    let usedPasswords = {};
     let failCount = 0;
     const MAX_FAILS = 3;
-    const TEACHER_PASSWORD = "TEACHER123"; // 🔑 change as needed
+    const TEACHER_PASSWORD = "TEACHER123";
 
-    // Map student usernames to suffix
     const suffixMap = {
-      "S1A": "A",
-      "S1B": "B",
-      "S1C": "C",
-      "S2A": "A",
-      "S2B": "B",
-      "S3A": "A",
-      "S3B": "B"
+      "S1A": "A", "S1B": "B", "S1C": "C",
+      "S2A": "A", "S2B": "B",
+      "S3A": "A", "S3B": "B"
     };
 
-    // Generate valid passwords for students
     let validPasswords = {};
     for (let user in suffixMap) {
       let suffix = suffixMap[user];
@@ -105,61 +138,65 @@
       }
     }
 
+    const errorMsg = document.getElementById("errorMsg");
+    const box = document.querySelector(".login-box");
+
+    function wiggle() {
+      box.style.animation = "wiggle 0.3s";
+      setTimeout(() => { box.style.animation = "floaty 3s ease-in-out infinite"; }, 300);
+    }
+
     document.getElementById("loginForm").addEventListener("submit", function(event){
       event.preventDefault();
       const username = document.getElementById("username").value;
       const password = document.getElementById("password").value.trim().toUpperCase();
-      const errorMsg = document.getElementById("errorMsg");
 
       if(!username){
         errorMsg.style.color = "red";
-        errorMsg.textContent = "Please select a username!";
+        errorMsg.textContent = "⚠️ Please select your username!";
+        wiggle();
         return;
       }
 
-      // --- Teacher login ---
       if(username === "TEACHER"){
         if(password === TEACHER_PASSWORD){
           errorMsg.style.color = "green";
-          errorMsg.textContent = "✅ Teacher login successful! Redirecting...";
-          localStorage.setItem("teacherAuth", "true"); // save teacher login
-          setTimeout(() => {
-            window.location.href = "teacher.html";
-          }, 1000);
+          errorMsg.textContent = "🎉 Teacher login successful! Redirecting...";
+          localStorage.setItem("teacherAuth", "true");
+          setTimeout(() => { window.location.href = "teacher.html"; }, 1200);
         } else {
           errorMsg.style.color = "red";
-          errorMsg.textContent = "❌ Wrong teacher password!";
+          errorMsg.textContent = "❌ Wrong teacher code!";
+          wiggle();
         }
         return;
       }
 
-      // --- Student login ---
       if(!validPasswords[username].includes(password)){
         failCount++;
         errorMsg.style.color = "red";
-        errorMsg.textContent = `❌ Invalid password for ${username}. Attempts left: ${MAX_FAILS - failCount}`;
+        errorMsg.textContent = `😬 Wrong code! Attempts left: ${MAX_FAILS - failCount}`;
+        wiggle();
         if(failCount >= MAX_FAILS){
           document.getElementById("password").disabled = true;
           document.querySelector("button").disabled = true;
-          errorMsg.textContent = "🔒 Locked! Too many wrong attempts.";
+          errorMsg.textContent = "🔒 Locked! Too many wrong tries.";
         }
         return;
       }
 
       if(localStorage.getItem(password) && localStorage.getItem(password) !== username){
         errorMsg.style.color = "red";
-        errorMsg.textContent = "❌ This password is already used by another student!";
+        errorMsg.textContent = "🚫 That code is already used!";
+        wiggle();
         return;
       }
 
-      // Success
-      localStorage.setItem(password, username); // store as used
+      localStorage.setItem(password, username);
       errorMsg.style.color = "green";
-      errorMsg.textContent = `✅ Login successful! Redirecting...`;
+      errorMsg.textContent = `✅ Great job ${username}! Redirecting...`;
 
-      setTimeout(() => {
-        window.location.href = "test.html";
-      }, 1000);
+      setTimeout(() => { window.location.href = "test.html"; }, 1200);
     });
   </script>
 </body>
